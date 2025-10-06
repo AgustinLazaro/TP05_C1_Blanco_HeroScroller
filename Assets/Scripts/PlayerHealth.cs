@@ -9,7 +9,7 @@ public class PlayerHealth : MonoBehaviour
 
     private int currentHealth;
 
-    void Start()
+    void Awake()
     {
         currentHealth = maxHealth;
         healthBar.maxValue = maxHealth;

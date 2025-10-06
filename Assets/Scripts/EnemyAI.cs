@@ -7,7 +7,7 @@ public class EnemyAI : MonoBehaviour
     private Vector2 direction;
     private Transform player;
 
-    void Start()
+    void Awake()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
     }
