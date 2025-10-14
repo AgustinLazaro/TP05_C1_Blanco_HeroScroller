@@ -1,95 +1,144 @@
-/*
- * Este archivo contiene las notaciones generales sobre el funcionamiento del juego.
- * Est· diseÒado para servir como referencia r·pida para entender cÛmo interact˙an los scripts y los componentes.
+Ôªø/*
+ * Notas generales del juego (versi√≥n actual).
+ * Referencia r√°pida de interacci√≥n entre sistemas y nombres esperados en la jerarqu√≠a.
  */
 
 /*
- * PlayerController.cs
- * -------------------
- * Controla el movimiento del jugador, el salto y el disparo.
- * - Movimiento: Utiliza Rigidbody2D para aplicar velocidad horizontal.
- * - Salto: Permite un salto ˙nico cada vez que el jugador toca una superficie sÛlida.
- * - Disparo: Instancia balas que se dirigen hacia el cursor del ratÛn.
+ * UIManager.cs
+ * ------------
+ * Men√∫ principal:
+ * - Paneles: PanelTitle, PanelOptions, PanelCredits.
+ * - Botones: ButtonStart, ButtonOptions, ButtonCredits, ButtonBackOptions, ButtonBackCredits
+ *   (fallback de back: "ButtonBack" dentro de cada panel).
+ * - M√∫sica de men√∫: si 'menuMusic' est√° asignado, se reproduce SOLO en la escena de men√∫.
+ * - ESC en men√∫: deshabilitado (la pausa solo existe in-game).
+ *
+ * In-Game:
+ * - Pausa: PanelPause con botones ButtonResume y ButtonPauseOptions.
+ * - Tecla de pausa: configurable (por defecto P) y ESC (solo in-game).
+ * - Al pausar: Time.timeScale = 0; al reanudar: Time.timeScale = 1.
+ * - Opciones desde Pausa usan el mismo PanelOptions del men√∫. El bot√≥n Back en opciones vuelve a PanelPause
+ *   si viniste desde la pausa; de lo contrario, vuelve a PanelTitle.
+ *
+ * Opciones (volumen):
+ * - Sliders: SliderMaster, SliderMusic, SliderSFX -> AudioManager.MasterVolume/MusicVolume/SfxVolume.
+ * - Persistencia PlayerPrefs: "vol_master", "vol_music", "vol_sfx".
  */
 
 /*
  * GameManager.cs
  * --------------
- * Gestiona el estado global del juego.
- * - PuntuaciÛn: Incrementa la puntuaciÛn al recoger monedas.
- * - Enemigos eliminados: Lleva un conteo de los enemigos derrotados.
- * - CondiciÛn de victoria: Comprueba si se han recogido todas las monedas y eliminado todos los enemigos.
+ * Estado global de objetivos y HUD (solo TMP):
+ * - Objetivos configurables en Inspector: targetCoins, targetKills (0 = no requerido).
+ * - Progreso: coinsCollected, enemiesKilled.
+ * - HUD TMP: "TextCoin" o "TextCoins" para monedas; "TextEnemy" o "TextKills" para kills.
+ * - API p√∫blica:
+ *   - AddCoin(): suma 1 moneda y eval√∫a victoria.
+ *   - EnemyKilled(): suma 1 kill y eval√∫a victoria.
+ * - Condici√≥n de victoria: (coinsCollected >= targetCoins si targetCoins>0) y (enemiesKilled >= targetKills si targetKills>0).
+ *   Si se cumple -> VictoryUI.Show(resumen) y Time.timeScale = 0.
  */
 
 /*
- * PlayerHealth.cs
- * ---------------
- * Gestiona la salud del jugador.
- * - DaÒo: Reduce la salud del jugador al recibir daÒo.
- * - RestauraciÛn: Permite recuperar un porcentaje de la salud m·xima al recoger un power-up.
- * - Barra de vida: Actualiza la barra de vida en la interfaz de usuario.
+ * VictoryUI.cs
+ * ------------
+ * - Panel: PanelVictory (hijo del HUD), botones: ButtonRetry, ButtonMenu, texto TMP opcional: TextVictory.
+ * - Al mostrar:
+ *   - Detiene la m√∫sica de fondo (AudioManager.StopMusic) y reproduce SFX de victoria (victorySfx) si est√° asignado.
+ *   - Activa PanelVictory y pone Time.timeScale = 0.
+ * - ButtonRetry: recarga la escena actual (Time.timeScale = 1).
+ * - ButtonMenu: carga SceneMenu (Time.timeScale = 1).
  */
 
 /*
- * Pickable.cs
- * -----------
- * Controla los objetos coleccionables.
- * - Monedas: Incrementan la puntuaciÛn global al ser recogidas.
- * - Power-ups: Restauran un porcentaje de la salud del jugador.
- */
-
-/*
- * Enemy.cs
- * --------
- * Controla el comportamiento de los enemigos.
- * - DaÒo: Inflige daÒo al jugador al colisionar con Èl.
- * - Vida: Los enemigos tienen una cantidad de vida que se reduce al recibir daÒo.
- * - EliminaciÛn: Notifica al GameManager cuando un enemigo es derrotado.
- */
-
-/*
- * EnemySpawner.cs
- * ---------------
- * Genera enemigos en posiciones aleatorias dentro de un ·rea definida.
- * - Intervalo de apariciÛn: Controla el tiempo entre cada apariciÛn.
- * - ConfiguraciÛn: Ajusta la velocidad y direcciÛn inicial de los enemigos generados.
- */
-
-/*
- * EnemyAI.cs
- * ----------
- * Controla la inteligencia artificial de los enemigos.
- * - Movimiento: Los enemigos se mueven hacia el jugador.
- * - DirecciÛn inicial: Permite configurar la direcciÛn inicial del movimiento.
- */
-
-/*
- * CameraFollow.cs
- * ---------------
- * Hace que la c·mara siga al jugador.
- * - Desplazamiento: Ajusta la posiciÛn de la c·mara en los ejes Y y Z.
+ * GameOverUI.cs
+ * -------------
+ * - Panel: PanelGameOver (hijo del HUD), botones: ButtonRetry, ButtonMenu.
+ * - Al mostrar:
+ *   - Detiene la m√∫sica de fondo (AudioManager.StopMusic) y reproduce SFX de derrota (defeatSfx) si est√° asignado.
+ *   - Activa PanelGameOver y pone Time.timeScale = 0.
+ * - ButtonRetry: recarga la escena actual (Time.timeScale = 1).
+ * - ButtonMenu: carga SceneMenu (Time.timeScale = 1).
  */
 
 /*
  * AudioManager.cs
  * ---------------
- * Gestiona los efectos de sonido del juego.
- * - ReproducciÛn: Permite reproducir sonidos especÌficos como disparos, saltos y recogida de objetos.
+ * - Singleton persistente con dos AudioSource: m√∫sica (loop) y SFX (one-shot).
+ * - Vol√∫menes:
+ *   - MasterVolume -> AudioListener.volume (PlayerPrefs "vol_master").
+ *   - MusicVolume  -> musicSource.volume  (PlayerPrefs "vol_music").
+ *   - SfxVolume    -> sfxSource.volume    (PlayerPrefs "vol_sfx").
+ * - API:
+ *   - PlayMusic(clip, loop=true), StopMusic().
+ *   - PlaySFX(clip) (respeta SfxVolume, suena aunque Time.timeScale = 0).
+ */
+
+/*
+ * HUD (nombres esperados)
+ * -----------------------
+ * - Textos TMP: "TextCoin"/"TextCoins" para monedas; "TextEnemy"/"TextKills" para kills.
+ * - Barra de vida del jugador: "HP player bar" (Slider) con fill para color.
+ * - Paneles: PanelPause, PanelOptions, PanelCredits, PanelTitle, PanelVictory, PanelGameOver.
+ * - EventSystem presente en escena.
+ */
+
+/*
+ * Pickable.cs
+ * -----------
+ * - Tipos: Coin, HealthPowerUp, InvincibilityPowerUp, DoubleJumpPowerUp.
+ * - Monedas: cuentan por unidad -> GameManager.AddCoin().
+ * - Power-ups: restauran vida (porcentaje), invencibilidad temporal, doble salto temporal.
+ * - Respawn: solo para power-ups (no para monedas), en √°rea [spawnAreaMin..spawnAreaMax].
+ */
+
+/*
+ * Enemy.cs
+ * --------
+ * - Vida: health/maxHealth; da√±o al jugador via PlayerController/PlayerHealth.
+ * - Barra de vida por enemigo (prefab con Slider) instanciada en Canvas Overlay, y posicionada en pantalla
+ *   con offset worldYOffset. Se destruye al morir el enemigo.
+ * - Al morir: GameManager.EnemyKilled() y Destroy(enemy).
+ */
+
+/*
+ * PlayerHealth.cs
+ * ---------------
+ * - Salud del jugador; actualiza Slider y color del fill (verde ‚Üî rojo).
+ * - Invencibilidad temporal (corrutina); mientras dura, ignora da√±o.
+ * - Al llegar a 0: deshabilita PlayerController, muestra GameOverUI y pausa.
+ */
+
+/*
+ * PlayerController.cs
+ * -------------------
+ * - Movimiento, salto (con opci√≥n de doble salto temporal) y disparo (Bullet).
+ * - Da√±o en colisiones con enemigos: delega a PlayerHealth.TakeDamage().
  */
 
 /*
  * Bullet.cs
  * ---------
- * Controla el comportamiento de las balas disparadas por el jugador.
- * - Movimiento: Las balas se mueven en la direcciÛn establecida.
- * - DaÒo: Infligen daÒo a los enemigos al colisionar con ellos.
- * - EliminaciÛn: Se destruyen al salir de la vista de la c·mara o al impactar.
+ * - Movimiento hacia la direcci√≥n apuntada; al colisionar con Enemy aplica da√±o y se destruye.
+ * - Se destruye al salir de la vista de c√°mara.
  */
 
 /*
- * General
- * -------
- * - El juego tiene como objetivo recoger todas las monedas y eliminar un n˙mero determinado de enemigos.
- * - Los prefabs de los objetos (jugador, enemigos, monedas, power-ups, balas) est·n configurados para interactuar entre sÌ mediante los scripts.
- * - La lÛgica principal del juego est· centralizada en el GameManager, mientras que los scripts individuales controlan comportamientos especÌficos.
+ * UI/Flujo general
+ * ----------------
+ * - Men√∫ principal:
+ *   - M√∫sica de men√∫ (opcional), botones para Play/Options/Credits y Back en cada subpanel.
+ *   - La tecla ESC no abre la pausa en el men√∫.
+ * - In-Game:
+ *   - Pausa con P/ESC (PanelPause). Desde ah√≠ se accede a Opciones; Back vuelve a Pausa.
+ *   - Victoria/Derrota: panel correspondiente, SFX dedicado, m√∫sica detenida, Time.timeScale = 0.
+ */
+
+/*
+ * Recomendaciones de escena
+ * -------------------------
+ * - Canvas del HUD en Screen Space - Overlay.
+ * - PanelVictory/PanelGameOver/PanelPause como hijos del HUD.
+ * - Asegurar EventSystem en escena.
+ * - Configurar targetCoins/targetKills en GameManager seg√∫n el nivel.
  */

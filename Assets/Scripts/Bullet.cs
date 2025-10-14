@@ -27,7 +27,7 @@ public class Bullet : MonoBehaviour
         if (collision.gameObject.CompareTag("Enemy"))
         {
             collision.gameObject.GetComponent<Enemy>().TakeDamage(damage);
-            Destroy(gameObject);
+            Destroy(gameObject); // Destruir la bala al impactar
         }
     }
 

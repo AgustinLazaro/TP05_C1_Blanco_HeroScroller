@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,43 +9,76 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private Image healthBarFill;
 
     private int currentHealth;
+    private bool isInvincible;
 
-    void Awake()
+    private void Awake()
     {
+        if (healthBar == null)
+        {
+            var go = GameObject.Find("HP player bar");
+            if (go != null) healthBar = go.GetComponent<Slider>();
+        }
+        if (healthBarFill == null && healthBar != null && healthBar.fillRect != null)
+            healthBarFill = healthBar.fillRect.GetComponent<Image>();
+
         currentHealth = maxHealth;
-        healthBar.maxValue = maxHealth;
-        healthBar.value = currentHealth;
+
+        if (healthBar != null)
+        {
+            healthBar.minValue = 0;
+            healthBar.maxValue = maxHealth;
+            healthBar.value = currentHealth;
+        }
+
         UpdateHealthBarColor();
     }
 
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        healthBar.value = currentHealth;
+        if (isInvincible) return;
+
+        currentHealth = Mathf.Max(0, currentHealth - damage);
+        if (healthBar != null) healthBar.value = currentHealth;
         UpdateHealthBarColor();
 
-        if (currentHealth <= 0)
-        {
-            Die();
-        }
+        if (currentHealth <= 0) Die();
     }
 
     public void RestoreHealth(int percentage)
     {
-        int healthToRestore = Mathf.RoundToInt(maxHealth * (percentage / 100f));
-        currentHealth = Mathf.Min(currentHealth + healthToRestore, maxHealth);
-        healthBar.value = currentHealth;
+        float pct = Mathf.Clamp01(percentage / 100f);
+        int toRestore = Mathf.RoundToInt(maxHealth * pct);
+        currentHealth = Mathf.Min(currentHealth + toRestore, maxHealth);
+        if (healthBar != null) healthBar.value = currentHealth;
         UpdateHealthBarColor();
     }
 
-    void UpdateHealthBarColor()
+    private void UpdateHealthBarColor()
     {
-        float healthPercentage = (float)currentHealth / maxHealth;
-        healthBarFill.color = Color.Lerp(Color.red, Color.green, healthPercentage);
+        if (healthBarFill == null) return;
+        float pct = (float)currentHealth / Mathf.Max(1, maxHealth);
+        healthBarFill.color = Color.Lerp(Color.red, Color.green, pct);
     }
 
-    void Die()
+    private void Die()
     {
-        Debug.Log("Jugador ha muerto");
+        var controller = GetComponent<PlayerController>();
+        if (controller != null) controller.enabled = false;
+
+        var gameOver = FindObjectOfType<GameOverUI>(true);
+        if (gameOver != null) gameOver.Show();
+        else Debug.LogWarning("[PlayerHealth] GameOverUI no encontrado.");
+    }
+
+    public void ActivateInvincibility(float duration)
+    {
+        if (duration > 0f) StartCoroutine(InvincibilityCoroutine(duration));
+    }
+
+    private IEnumerator InvincibilityCoroutine(float duration)
+    {
+        isInvincible = true;
+        yield return new WaitForSeconds(duration);
+        isInvincible = false;
     }
 }
