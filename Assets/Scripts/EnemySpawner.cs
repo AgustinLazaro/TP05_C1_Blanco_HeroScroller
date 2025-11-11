@@ -1,45 +1,67 @@
 using UnityEngine;
 
+/// <summary>
+/// Genera enemigos automáticamente en intervalos de tiempo
+/// dentro de un área definida
+/// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject enemyPrefab;
-    [SerializeField] private float spawnInterval = 2f;
-    [SerializeField] private Vector2 spawnAreaSize = new Vector2(10f, 5f);
+    // ========== CONFIGURACIÓN DE SPAWN ==========
+    [Header("Generación de Enemigos")]
+    [SerializeField] private GameObject enemyPrefab;        // Prefab del enemigo a crear
+    [SerializeField] private float spawnInterval = 2f;      // Cada cuántos segundos aparece un enemigo
+    [SerializeField] private Vector2 spawnAreaSize = new Vector2(10f, 5f); // Tamaño del área de spawn
 
-    private float timer;
+    [Header("Configuración de Enemigos")]
+    [SerializeField] private float minMoveSpeed = 1f;       // Velocidad mínima
+    [SerializeField] private float maxMoveSpeed = 3f;       // Velocidad máxima
 
-    void Update()
+    // ========== ESTADO ==========
+    private float timer; // Temporizador interno
+
+    // ========== UPDATE (CADA FRAME) ==========
+    private void Update()
     {
+        // Incrementar temporizador
         timer += Time.deltaTime;
 
+        // Cuando el temporizador llega al intervalo, generar enemigo
         if (timer >= spawnInterval)
         {
             SpawnEnemy();
-            timer = 0f;
+            timer = 0f; // Resetear temporizador
         }
     }
 
-    void SpawnEnemy()
+    /// <summary>
+    /// Crea un enemigo en una posición aleatoria del área
+    /// </summary>
+    private void SpawnEnemy()
     {
-        Vector2 spawnPosition = new Vector2(
-            Random.Range(-spawnAreaSize.x / 2, spawnAreaSize.x / 2),
-            Random.Range(-spawnAreaSize.y / 2, spawnAreaSize.y / 2)
-        );
+        // Calcular posición aleatoria dentro del área
+        float randomX = Random.Range(-spawnAreaSize.x, spawnAreaSize.x) * 0.5f;
+        float randomY = Random.Range(-spawnAreaSize.y, spawnAreaSize.y) * 0.5f;
+        Vector2 randomOffset = new Vector2(randomX, randomY);
 
-        spawnPosition += (Vector2)transform.position;
+        // Posición final: centro del spawner + offset aleatorio
+        Vector2 spawnPosition = (Vector2)transform.position + randomOffset;
 
-        GameObject enemy = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+        // Crear el enemigo
+        GameObject enemyObject = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
 
-        EnemyAI enemyAI = enemy.GetComponent<EnemyAI>();
-        if (enemyAI != null)
+        // Configurar velocidad aleatoria
+        EnemyAI ai = enemyObject.GetComponent<EnemyAI>();
+        if (ai != null)
         {
-            enemyAI.moveSpeed = Random.Range(1f, 3f);
-            enemyAI.SetInitialDirection(Random.value > 0.5f ? Vector2.right : Vector2.left);
+            float randomSpeed = Random.Range(minMoveSpeed, maxMoveSpeed);
+            ai.SetMoveSpeed(randomSpeed);
         }
     }
 
-    void OnDrawGizmos()
+    // ========== GIZMOS (VISUALIZACIÓN EN EDITOR) ==========
+    private void OnDrawGizmos()
     {
+        // Dibujar el área de spawn en rojo
         Gizmos.color = Color.red;
         Gizmos.DrawWireCube(transform.position, spawnAreaSize);
     }

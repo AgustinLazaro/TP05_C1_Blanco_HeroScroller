@@ -3,86 +3,112 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
+/// <summary>
+/// Controla la pantalla de victoria
+/// </summary>
 public class VictoryUI : MonoBehaviour
 {
-    [SerializeField] private GameObject panelVictory;     // "PanelVictory"
-    [SerializeField] private Button buttonRetry;          // "ButtonRetry"
-    [SerializeField] private Button buttonMenu;           // "ButtonMenu"
-    [SerializeField] private TextMeshProUGUI messageTMP;  // "TextVictory" (TMP)
+    // ========== CONFIGURACIÓN ==========
+    [Header("Pantalla de Victoria")]
+    [SerializeField] private GameObject panelVictory;       // Panel principal
+    [SerializeField] private TextMeshProUGUI textVictory;   // Texto de resumen
+    [SerializeField] private Button buttonRetry;            // Botón "Reintentar"
+    [SerializeField] private Button buttonMenu;             // Botón "Menú"
 
     [Header("Audio")]
-    [SerializeField] private AudioClip victorySfx;
+    [SerializeField] private AudioClip victorySfx;          // Sonido de victoria
 
-    [SerializeField] private string menuSceneName = "SceneMenu";
-
+    // ========== INICIALIZACIÓN ==========
     private void Awake()
     {
-        AutoWireInChildren();
-
-        if (panelVictory != null) panelVictory.SetActive(false);
-        if (buttonRetry != null) buttonRetry.onClick.AddListener(Retry);
-        if (buttonMenu != null) buttonMenu.onClick.AddListener(LoadMenu);
+        // Buscar referencias automáticamente
+        AutoWire();
+        
+        // Conectar botones
+        if (buttonRetry != null)
+            buttonRetry.onClick.AddListener(OnRetry);
+        
+        if (buttonMenu != null)
+            buttonMenu.onClick.AddListener(OnMenu);
+        
+        // Ocultar panel al inicio
+        if (panelVictory != null)
+            panelVictory.SetActive(false);
     }
 
-    public void Show(string message)
+    /// <summary>
+    /// Busca componentes automáticamente
+    /// </summary>
+    private void AutoWire()
     {
         if (panelVictory == null)
+            panelVictory = GameObject.Find("PanelVictory");
+        
+        if (textVictory == null && panelVictory != null)
+            textVictory = panelVictory.GetComponentInChildren<TextMeshProUGUI>();
+        
+        if (buttonRetry == null)
+            buttonRetry = FindButton("ButtonRetry");
+        
+        if (buttonMenu == null)
+            buttonMenu = FindButton("ButtonMenu");
+    }
+
+    private Button FindButton(string name)
+    {
+        Button[] buttons = GetComponentsInChildren<Button>(true);
+        foreach (Button btn in buttons)
         {
-            Debug.LogError("[VictoryUI] Falta 'PanelVictory' como hijo del HUD.");
-            return;
+            if (btn.name == name)
+                return btn;
         }
+        return null;
+    }
 
-        if (messageTMP != null) messageTMP.text = message;
+    // ========== MOSTRAR PANTALLA ==========
 
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.StopMusic();
-            if (victorySfx != null) AudioManager.Instance.PlaySFX(victorySfx);
-        }
-
-        panelVictory.SetActive(true);
+    /// <summary>
+    /// Muestra la pantalla de victoria con un mensaje
+    /// </summary>
+    public void Show(string message)
+    {
+        // Actualizar texto
+        if (textVictory != null)
+            textVictory.text = message;
+        
+        // Mostrar panel
+        if (panelVictory != null)
+            panelVictory.SetActive(true);
+        
+        // Pausar el juego
         Time.timeScale = 0f;
+        
+        // Detener música
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusic();
+        
+        // Reproducir sonido de victoria
+        if (victorySfx != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX(victorySfx);
     }
 
-    private void Retry()
+    // ========== BOTONES ==========
+
+    /// <summary>
+    /// Botón "Reintentar" - Recarga la escena actual
+    /// </summary>
+    private void OnRetry()
     {
         Time.timeScale = 1f;
-        var current = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(current.buildIndex);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    private void LoadMenu()
+    /// <summary>
+    /// Botón "Menú" - Vuelve al menú principal
+    /// </summary>
+    private void OnMenu()
     {
         Time.timeScale = 1f;
-        if (!string.IsNullOrWhiteSpace(menuSceneName))
-            SceneManager.LoadScene(menuSceneName);
-        else
-            Debug.LogError("[VictoryUI] 'menuSceneName' no configurado.");
-    }
-
-    private void AutoWireInChildren()
-    {
-        if (panelVictory == null) panelVictory = FindChildGO("PanelVictory");
-        if (buttonRetry == null) buttonRetry = FindChild<Button>("ButtonRetry");
-        if (buttonMenu == null) buttonMenu = FindChild<Button>("ButtonMenu");
-        if (messageTMP == null)
-        {
-            var go = FindChildGO("TextVictory");
-            if (go != null) messageTMP = go.GetComponent<TextMeshProUGUI>();
-        }
-    }
-
-    private GameObject FindChildGO(string name)
-    {
-        var trs = GetComponentsInChildren<Transform>(true);
-        foreach (var t in trs) if (t.name == name) return t.gameObject;
-        return null;
-    }
-
-    private T FindChild<T>(string name) where T : Component
-    {
-        var comps = GetComponentsInChildren<T>(true);
-        foreach (var c in comps) if (c.name == name) return c;
-        return null;
+        SceneManager.LoadScene("SceneMenu");
     }
 }

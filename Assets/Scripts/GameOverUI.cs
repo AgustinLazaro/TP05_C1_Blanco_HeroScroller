@@ -2,78 +2,104 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Controla la pantalla de Game Over
+/// </summary>
 public class GameOverUI : MonoBehaviour
 {
-    [SerializeField] private GameObject panelGameOver; // "PanelGameOver"
-    [SerializeField] private Button buttonRetry;       // "ButtonRetry"
-    [SerializeField] private Button buttonMenu;        // "ButtonMenu"
+    // ========== CONFIGURACIÓN ==========
+    [Header("Pantalla de Game Over")]
+    [SerializeField] private GameObject panelGameOver;  // Panel principal
+    [SerializeField] private Button buttonRetry;        // Botón "Reintentar"
+    [SerializeField] private Button buttonMenu;         // Botón "Menú"
 
     [Header("Audio")]
-    [SerializeField] private AudioClip defeatSfx;
+    [SerializeField] private AudioClip defeatSfx;       // Sonido de derrota
 
-    [SerializeField] private string menuSceneName = "SceneMenu";
-
+    // ========== INICIALIZACIÓN ==========
     private void Awake()
     {
-        AutoWireInChildren();
-
-        if (panelGameOver != null) panelGameOver.SetActive(false);
-        if (buttonRetry != null) buttonRetry.onClick.AddListener(Retry);
-        if (buttonMenu != null) buttonMenu.onClick.AddListener(LoadMenu);
+        // Buscar referencias automáticamente
+        AutoWire();
+        
+        // Conectar botones
+        if (buttonRetry != null)
+            buttonRetry.onClick.AddListener(OnRetry);
+        
+        if (buttonMenu != null)
+            buttonMenu.onClick.AddListener(OnMenu);
+        
+        // Ocultar panel al inicio
+        if (panelGameOver != null)
+            panelGameOver.SetActive(false);
     }
 
-    public void Show()
+    /// <summary>
+    /// Busca componentes automáticamente
+    /// </summary>
+    private void AutoWire()
     {
         if (panelGameOver == null)
-        {
-            Debug.LogError("[GameOverUI] Falta 'PanelGameOver' como hijo del HUD.");
-            return;
-        }
+            panelGameOver = GameObject.Find("PanelGameOver");
+        
+        if (buttonRetry == null)
+            buttonRetry = FindButton("ButtonRetry");
+        
+        if (buttonMenu == null)
+            buttonMenu = FindButton("ButtonMenu");
+    }
 
-        if (AudioManager.Instance != null)
+    private Button FindButton(string name)
+    {
+        Button[] buttons = GetComponentsInChildren<Button>(true);
+        foreach (Button btn in buttons)
         {
-            AudioManager.Instance.StopMusic();
-            if (defeatSfx != null) AudioManager.Instance.PlaySFX(defeatSfx);
+            if (btn.name == name)
+                return btn;
         }
+        return null;
+    }
 
-        panelGameOver.SetActive(true);
+    // ========== MOSTRAR PANTALLA ==========
+
+    /// <summary>
+    /// Muestra la pantalla de Game Over
+    /// </summary>
+    public void Show()
+    {
+        // Mostrar panel
+        if (panelGameOver != null)
+            panelGameOver.SetActive(true);
+        
+        // Pausar el juego
         Time.timeScale = 0f;
+        
+        // Detener música
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusic();
+        
+        // Reproducir sonido de derrota
+        if (defeatSfx != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX(defeatSfx);
     }
 
-    private void Retry()
+    // ========== BOTONES ==========
+
+    /// <summary>
+    /// Botón "Reintentar" - Recarga la escena actual
+    /// </summary>
+    private void OnRetry()
     {
         Time.timeScale = 1f;
-        var current = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(current.buildIndex);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    private void LoadMenu()
+    /// <summary>
+    /// Botón "Menú" - Vuelve al menú principal
+    /// </summary>
+    private void OnMenu()
     {
         Time.timeScale = 1f;
-        if (!string.IsNullOrWhiteSpace(menuSceneName))
-            SceneManager.LoadScene(menuSceneName);
-        else
-            Debug.LogError("[GameOverUI] 'menuSceneName' no configurado.");
-    }
-
-    private void AutoWireInChildren()
-    {
-        if (panelGameOver == null) panelGameOver = FindChildGO("PanelGameOver");
-        if (buttonRetry == null) buttonRetry = FindChild<Button>("ButtonRetry");
-        if (buttonMenu == null) buttonMenu = FindChild<Button>("ButtonMenu");
-    }
-
-    private GameObject FindChildGO(string name)
-    {
-        var trs = GetComponentsInChildren<Transform>(true);
-        foreach (var t in trs) if (t.name == name) return t.gameObject;
-        return null;
-    }
-
-    private T FindChild<T>(string name) where T : Component
-    {
-        var comps = GetComponentsInChildren<T>(true);
-        foreach (var c in comps) if (c.name == name) return c;
-        return null;
+        SceneManager.LoadScene("SceneMenu");
     }
 }

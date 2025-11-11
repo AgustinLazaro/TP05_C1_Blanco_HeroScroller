@@ -1,78 +1,123 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controla la vida del jugador usando un sistema de corazones visuales
+/// Cada corazón representa 2 puntos de vida (lleno=2, medio=1, vacío=0)
+/// </summary>
 public class PlayerHealth : MonoBehaviour
 {
-    [SerializeField] private int maxHealth = 100;
-    [SerializeField] private Slider healthBar;
-    [SerializeField] private Image healthBarFill;
+    // ========== CONFIGURACIÓN ==========
+    [Header("Configuración de Vida")]
+    [SerializeField] private int maxHealth = 6; // 6 vida = 3 corazones × 2
+    [SerializeField] private PlayerController playerController;
+    
+    [Header("Sistema de Corazones Visuales")]
+    [SerializeField] private GameObject heartContainer; // Panel que contiene los corazones
+    [SerializeField] private Sprite heartFull;          // Sprite: corazón lleno
+    [SerializeField] private Sprite heartHalf;          // Sprite: corazón medio
+    [SerializeField] private Sprite heartEmpty;         // Sprite: corazón vacío
+    
+    // ========== VARIABLES PRIVADAS ==========
+    private Image[] heartImages;        // Array con las imágenes de los corazones
+    private int currentHealth;          // Vida actual del jugador
+    private bool isInvincible;          // ¿El jugador es invencible?
 
-    private int currentHealth;
-    private bool isInvincible;
-
+    // ========== INICIALIZACIÓN ==========
     private void Awake()
     {
-        if (healthBar == null)
-        {
-            var go = GameObject.Find("HP player bar");
-            if (go != null) healthBar = go.GetComponent<Slider>();
-        }
-        if (healthBarFill == null && healthBar != null && healthBar.fillRect != null)
-            healthBarFill = healthBar.fillRect.GetComponent<Image>();
-
         currentHealth = maxHealth;
-
-        if (healthBar != null)
-        {
-            healthBar.minValue = 0;
-            healthBar.maxValue = maxHealth;
-            healthBar.value = currentHealth;
-        }
-
-        UpdateHealthBarColor();
+        
+        if (playerController == null)
+            playerController = GetComponent<PlayerController>();
+        
+        SetupHeartSystem();
     }
 
+    private void SetupHeartSystem()
+    {
+        if (heartContainer == null) 
+            return;
+        
+        heartImages = heartContainer.GetComponentsInChildren<Image>();
+        UpdateHearts();
+    }
+
+    // ========== MÉTODOS PÚBLICOS ==========
+    
     public void TakeDamage(int damage)
     {
-        if (isInvincible) return;
+        if (isInvincible) 
+            return;
 
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-        if (healthBar != null) healthBar.value = currentHealth;
-        UpdateHealthBarColor();
+        currentHealth -= damage;
+        if (currentHealth < 0)
+            currentHealth = 0;
+        
+        UpdateHearts();
 
-        if (currentHealth <= 0) Die();
+        if (currentHealth <= 0)
+            Die();
     }
 
-    public void RestoreHealth(int percentage)
+    public void RestoreHealth(int amount)
     {
-        float pct = Mathf.Clamp01(percentage / 100f);
-        int toRestore = Mathf.RoundToInt(maxHealth * pct);
-        currentHealth = Mathf.Min(currentHealth + toRestore, maxHealth);
-        if (healthBar != null) healthBar.value = currentHealth;
-        UpdateHealthBarColor();
-    }
-
-    private void UpdateHealthBarColor()
-    {
-        if (healthBarFill == null) return;
-        float pct = (float)currentHealth / Mathf.Max(1, maxHealth);
-        healthBarFill.color = Color.Lerp(Color.red, Color.green, pct);
-    }
-
-    private void Die()
-    {
-        var controller = GetComponent<PlayerController>();
-        if (controller != null) controller.enabled = false;
-
-        var gameOver = FindObjectOfType<GameOverUI>(true);
-        if (gameOver != null) gameOver.Show();
-        else Debug.LogWarning("[PlayerHealth] GameOverUI no encontrado.");
+        currentHealth += amount;
+        if (currentHealth > maxHealth)
+            currentHealth = maxHealth;
+        
+        UpdateHearts();
     }
 
     public void ActivateInvincibility(float duration)
     {
-        if (duration > 0f) StartCoroutine(InvincibilityCoroutine(duration));
+        if (duration > 0)
+            StartCoroutine(InvincibilityCoroutine(duration));
+    }
+
+    // ========== MÉTODOS PRIVADOS ==========
+
+    private void UpdateHearts()
+    {
+        if (heartImages == null || heartImages.Length == 0) 
+            return;
+
+        for (int i = 0; i < heartImages.Length; i++)
+        {
+            // Cada corazón representa 2 puntos de vida
+            int vidaQueRepresenta = (i + 1) * 2; // 2, 4, 6
+            
+            if (currentHealth >= vidaQueRepresenta)
+            {
+                // Corazón lleno
+                heartImages[i].sprite = heartFull;
+                heartImages[i].color = Color.white;
+            }
+            else if (currentHealth >= vidaQueRepresenta - 1)
+            {
+                // Corazón medio
+                heartImages[i].sprite = heartHalf;
+                heartImages[i].color = Color.white; // Cambiado a blanco para usar el sprite real
+            }
+            else
+            {
+                // Corazón vacío
+                heartImages[i].sprite = heartEmpty;
+                heartImages[i].color = Color.white;
+            }
+            
+            heartImages[i].enabled = true;
+        }
+    }
+
+    private void Die()
+    {
+        if (playerController != null)
+            playerController.PlayDie();
+        
+        if (GameManager.Instance != null)
+            GameManager.Instance.SetGameOver();
     }
 
     private IEnumerator InvincibilityCoroutine(float duration)
