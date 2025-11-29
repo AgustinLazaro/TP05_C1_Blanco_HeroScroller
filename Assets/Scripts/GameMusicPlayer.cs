@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// Reproduce la música asignada al iniciar la escena.
+/// </summary>
 public class GameMusicPlayer : MonoBehaviour
 {
     [SerializeField] private AudioClip gameMusic;
@@ -7,6 +10,6 @@ public class GameMusicPlayer : MonoBehaviour
     private void Start()
     {
         if (gameMusic != null && AudioManager.Instance != null)
-            AudioManager.Instance.PlayMusic(gameMusic, loop: true);
+            AudioManager.Instance.PlayMusic(gameMusic, true);
     }
 }

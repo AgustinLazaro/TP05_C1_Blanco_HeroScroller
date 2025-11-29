@@ -1,68 +1,63 @@
 using UnityEngine;
 
 /// <summary>
-/// Genera enemigos automáticamente en intervalos de tiempo
-/// dentro de un área definida
+/// Genera enemigos automáticamente dentro de un área definida.
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
-    // ========== CONFIGURACIÓN DE SPAWN ==========
-    [Header("Generación de Enemigos")]
-    [SerializeField] private GameObject enemyPrefab;        // Prefab del enemigo a crear
-    [SerializeField] private float spawnInterval = 2f;      // Cada cuántos segundos aparece un enemigo
-    [SerializeField] private Vector2 spawnAreaSize = new Vector2(10f, 5f); // Tamaño del área de spawn
+    [Header("Generación")]
+    [SerializeField] private GameObject enemyPrefab;
+    [SerializeField] private float spawnInterval = 2f;
+    [SerializeField] private Vector2 spawnAreaSize = new Vector2(10f, 5f);
 
-    [Header("Configuración de Enemigos")]
-    [SerializeField] private float minMoveSpeed = 1f;       // Velocidad mínima
-    [SerializeField] private float maxMoveSpeed = 3f;       // Velocidad máxima
+    [Header("Enemigos")]
+    [SerializeField] private float minMoveSpeed = 1f;
+    [SerializeField] private float maxMoveSpeed = 3f;
 
-    // ========== ESTADO ==========
-    private float timer; // Temporizador interno
+    [Header("Ajuste")]
+    [SerializeField] private bool snapToGround = true;
+    [SerializeField] private LayerMask groundLayers = ~0;
+    [SerializeField] private float groundSnapDistance = 10f;
 
-    // ========== UPDATE (CADA FRAME) ==========
+    private float timer;
+
     private void Update()
     {
-        // Incrementar temporizador
+        if (enemyPrefab == null) return;
         timer += Time.deltaTime;
-
-        // Cuando el temporizador llega al intervalo, generar enemigo
-        if (timer >= spawnInterval)
-        {
-            SpawnEnemy();
-            timer = 0f; // Resetear temporizador
-        }
+        if (timer >= spawnInterval) { SpawnEnemy(); timer = 0f; }
     }
 
-    /// <summary>
-    /// Crea un enemigo en una posición aleatoria del área
-    /// </summary>
     private void SpawnEnemy()
     {
-        // Calcular posición aleatoria dentro del área
+        if (enemyPrefab == null) return;
+
         float randomX = Random.Range(-spawnAreaSize.x, spawnAreaSize.x) * 0.5f;
         float randomY = Random.Range(-spawnAreaSize.y, spawnAreaSize.y) * 0.5f;
-        Vector2 randomOffset = new Vector2(randomX, randomY);
+        Vector2 spawnPosition = (Vector2)transform.position + new Vector2(randomX, randomY);
 
-        // Posición final: centro del spawner + offset aleatorio
-        Vector2 spawnPosition = (Vector2)transform.position + randomOffset;
-
-        // Crear el enemigo
         GameObject enemyObject = Instantiate(enemyPrefab, spawnPosition, Quaternion.identity);
+        if (snapToGround) SnapToGround(enemyObject);
 
-        // Configurar velocidad aleatoria
-        EnemyAI ai = enemyObject.GetComponent<EnemyAI>();
-        if (ai != null)
+        float randomSpeed = Random.Range(minMoveSpeed, maxMoveSpeed);
+        enemyObject.SendMessage("SetMoveSpeed", randomSpeed, SendMessageOptions.DontRequireReceiver);
+    }
+
+    private void SnapToGround(GameObject go)
+    {
+        if (go == null) return;
+        var col = go.GetComponent<Collider2D>();
+        var tr = go.transform;
+        Vector2 origin = col != null ? new Vector2(col.bounds.center.x, col.bounds.max.y) : (Vector2)tr.position;
+        float castDist = groundSnapDistance + (col != null ? col.bounds.extents.y : 0.5f);
+        RaycastHit2D hit = Physics2D.Raycast(origin, Vector2.down, castDist, groundLayers);
+        if (hit.collider != null && !hit.collider.isTrigger && hit.collider.gameObject != go)
         {
-            float randomSpeed = Random.Range(minMoveSpeed, maxMoveSpeed);
-            ai.SetMoveSpeed(randomSpeed);
+            float extentsY = col != null ? col.bounds.extents.y : 0.5f;
+            float targetY = hit.point.y + extentsY;
+            tr.position = new Vector3(tr.position.x, targetY, tr.position.z);
         }
     }
 
-    // ========== GIZMOS (VISUALIZACIÓN EN EDITOR) ==========
-    private void OnDrawGizmos()
-    {
-        // Dibujar el área de spawn en rojo
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireCube(transform.position, spawnAreaSize);
-    }
+    private void OnDrawGizmos() { Gizmos.color = Color.red; Gizmos.DrawWireCube(transform.position, spawnAreaSize); }
 }

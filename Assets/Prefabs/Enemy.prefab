@@ -48,7 +48,7 @@ GameObject:
   - component: {fileID: 1704568875350510129}
   m_Layer: 0
   m_Name: Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -232,6 +232,10 @@ MonoBehaviour:
   attackDuration: 0.4
   healthBarPrefab: {fileID: 1177775798807879900, guid: 379431a2eeef12c4ab3c8d5666b7e494, type: 3}
   healthBarOffset: 1.5
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  groundSnapDistance: 3
 --- !u!114 &1704568875350510129
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,8 +248,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5b992de25b2c0bc459bb33bea4d2dafc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
+  moveSpeed: 2
+  acceleration: 8
   visionRange: 20
   attackDistance: 2
   attackCooldown: 0.6
+  groundCheck: {fileID: 0}
+  groundCheckRadius: 0.12
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 4294967295
   playerPrefab: {fileID: 4726358395962039232, guid: fbb73ce5e28c7214fa9d417e170ef086, type: 3}

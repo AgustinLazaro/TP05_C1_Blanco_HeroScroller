@@ -1,31 +1,20 @@
 using UnityEngine;
 
 /// <summary>
-/// Gestiona todo el audio del juego:
-/// - Música de fondo
-/// - Efectos de sonido
-/// - Control de volumen
+/// Gestiona música y efectos de sonido (volúmenes persistentes).
 /// </summary>
 public class AudioManager : MonoBehaviour
 {
-    // ========== SINGLETON ==========
     public static AudioManager Instance { get; private set; }
 
-    // ========== COMPONENTES DE AUDIO ==========
     [Header("Fuentes de Audio")]
-    [SerializeField] private AudioSource musicSource;   // Para música
-    [SerializeField] private AudioSource sfxSource;     // Para efectos de sonido
+    [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioSource sfxSource;
 
-    // ========== CLAVES DE PLAYERPREFS ==========
     private const string KEY_MASTER = "vol_master";
-    private const string KEY_MUSIC = "vol_music";
-    private const string KEY_SFX = "vol_sfx";
+    private const string KEY_MUSIC  = "vol_music";
+    private const string KEY_SFX    = "vol_sfx";
 
-    // ========== PROPIEDADES DE VOLUMEN ==========
-
-    /// <summary>
-    /// Volumen maestro (afecta a todo el audio del juego)
-    /// </summary>
     public float MasterVolume
     {
         get => AudioListener.volume;
@@ -36,121 +25,82 @@ public class AudioManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Volumen de la música
-    /// </summary>
     public float MusicVolume
     {
         get => musicSource != null ? musicSource.volume : 1f;
         set
         {
-            if (musicSource != null)
-                musicSource.volume = Mathf.Clamp01(value);
+            if (musicSource != null) musicSource.volume = Mathf.Clamp01(value);
             PlayerPrefs.SetFloat(KEY_MUSIC, Mathf.Clamp01(value));
         }
     }
 
-    /// <summary>
-    /// Volumen de efectos de sonido
-    /// </summary>
+    // RESTAURADA: volumen y reproducción de SFX
     public float SfxVolume
     {
         get => sfxSource != null ? sfxSource.volume : 1f;
         set
         {
-            if (sfxSource != null)
-                sfxSource.volume = Mathf.Clamp01(value);
+            if (sfxSource != null) sfxSource.volume = Mathf.Clamp01(value);
             PlayerPrefs.SetFloat(KEY_SFX, Mathf.Clamp01(value));
         }
     }
 
-    // ========== INICIALIZACIÓN ==========
     private void Awake()
     {
-        // Configurar Singleton (solo una instancia)
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-        DontDestroyOnLoad(gameObject); // Persiste entre escenas
-
-        // Asegurar que tenemos las fuentes de audio
+        DontDestroyOnLoad(gameObject);
         EnsureSources();
-        
-        // Cargar volúmenes guardados
         LoadVolumes();
     }
 
-    /// <summary>
-    /// Crea las fuentes de audio si no existen
-    /// </summary>
     private void EnsureSources()
     {
-        // Crear fuente de música si no existe
         if (musicSource == null)
         {
-            GameObject musicObject = new GameObject("MusicSource");
-            musicObject.transform.SetParent(transform);
-            musicSource = musicObject.AddComponent<AudioSource>();
+            var go = new GameObject("MusicSource");
+            go.transform.SetParent(transform);
+            musicSource = go.AddComponent<AudioSource>();
             musicSource.loop = true;
             musicSource.playOnAwake = false;
         }
-        
-        // Crear fuente de SFX si no existe
+
         if (sfxSource == null)
         {
-            GameObject sfxObject = new GameObject("SFXSource");
-            sfxObject.transform.SetParent(transform);
-            sfxSource = sfxObject.AddComponent<AudioSource>();
+            var go = new GameObject("SFXSource");
+            go.transform.SetParent(transform);
+            sfxSource = go.AddComponent<AudioSource>();
             sfxSource.playOnAwake = false;
         }
     }
 
-    /// <summary>
-    /// Carga los volúmenes guardados en PlayerPrefs
-    /// </summary>
     private void LoadVolumes()
     {
         MasterVolume = PlayerPrefs.GetFloat(KEY_MASTER, 1f);
-        MusicVolume = PlayerPrefs.GetFloat(KEY_MUSIC, 1f);
-        SfxVolume = PlayerPrefs.GetFloat(KEY_SFX, 1f);
+        MusicVolume  = PlayerPrefs.GetFloat(KEY_MUSIC,  1f);
+        SfxVolume    = PlayerPrefs.GetFloat(KEY_SFX,    1f);
     }
 
-    // ========== MÉTODOS PÚBLICOS ==========
-
-    /// <summary>
-    /// Reproduce música de fondo
-    /// </summary>
     public void PlayMusic(AudioClip clip, bool loop = true)
     {
-        if (musicSource == null || clip == null)
-            return;
-        
+        if (musicSource == null || clip == null) return;
         musicSource.loop = loop;
-        musicSource.clip = clip;
-        musicSource.Play();
+        if (musicSource.clip != clip) musicSource.clip = clip;
+        if (!musicSource.isPlaying) musicSource.Play();
     }
 
-    /// <summary>
-    /// Detiene la música
-    /// </summary>
     public void StopMusic()
     {
-        if (musicSource != null)
-            musicSource.Stop();
+        if (musicSource != null && musicSource.isPlaying) musicSource.Stop();
     }
 
-    /// <summary>
-    /// Reproduce un efecto de sonido
-    /// </summary>
+    // RESTAURADA: reproducción sencilla de SFX (global 2D)
     public void PlaySFX(AudioClip clip)
     {
-        if (sfxSource == null || clip == null)
-            return;
-        
+        if (sfxSource == null || clip == null) return;
         sfxSource.PlayOneShot(clip);
     }
+
+    private void OnApplicationQuit() => PlayerPrefs.Save();
 }
